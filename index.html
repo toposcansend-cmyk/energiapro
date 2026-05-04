@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EnergiaPro — Eficiência Energética com IA para seu Comércio</title>
+  <meta name="description" content="Reduza até 35% na conta de luz do seu comércio. Diagnóstico energético inteligente com IA. Análise de conta, mapeamento de equipamentos e insights de economia.">
+  <meta name="keywords" content="eficiência energética, conta de luz, economia energia, comércio, diagnóstico energético, IA, mercado livre energia">
+  <meta name="theme-color" content="#0A0E1A">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body class="landing">
+
+  <!-- Navigation -->
+  <header>
+    <div class="container">
+      <nav class="landing__nav" id="landing-nav">
+        <a href="#" class="landing__logo">
+          <span class="landing__logo-icon">⚡</span>
+          <span>EnergiaPro</span>
+        </a>
+        <div class="flex items-center gap-3">
+          <a href="#como-funciona" class="btn btn--ghost">Como Funciona</a>
+          <button class="btn btn--secondary btn--sm" id="btn-login-nav">Entrar</button>
+          <button class="btn btn--primary btn--sm" id="btn-signup-nav">Começar Grátis</button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero" id="hero">
+    <div class="hero__glow"></div>
+    <div class="container hero__content animate-fade-in-up">
+      <div class="hero__badge animate-fade-in">
+        <span>🤖</span>
+        <span>Potencializado por Inteligência Artificial</span>
+      </div>
+      <h1 class="hero__title">
+        Reduza até <span class="text-gradient">35%</span> na conta de<br>luz do seu comércio
+      </h1>
+      <p class="hero__subtitle">
+        Diagnóstico energético inteligente com IA. Envie sua conta de energia, mapeie equipamentos e receba insights personalizados de economia — tudo em minutos.
+      </p>
+      <div class="hero__cta">
+        <button class="btn btn--primary btn--lg animate-pulse-glow" id="btn-start-hero">
+          ⚡ Começar Diagnóstico Grátis
+        </button>
+        <button class="btn btn--secondary btn--lg" onclick="document.getElementById('como-funciona').scrollIntoView({behavior:'smooth'})">
+          Saiba mais →
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section class="section" id="como-funciona">
+    <div class="container">
+      <div class="text-center" style="margin-bottom: var(--space-12);">
+        <h2 class="animate-fade-in-up">Como Funciona</h2>
+        <p class="animate-fade-in-up" style="max-width:500px;margin:var(--space-4) auto 0;">5 etapas simples para transformar a eficiência energética do seu negócio</p>
+      </div>
+      <div class="how-it-works__grid stagger-children">
+        <div class="how-it-works__step">
+          <div class="how-it-works__icon">📋</div>
+          <div class="how-it-works__number">Etapa 01</div>
+          <h4 class="how-it-works__title">Cadastro & Perfil</h4>
+          <p class="how-it-works__desc">Informe dados do seu comércio, metragem, horários e consumo médio.</p>
+        </div>
+        <div class="how-it-works__step">
+          <div class="how-it-works__icon">📄</div>
+          <div class="how-it-works__number">Etapa 02</div>
+          <h4 class="how-it-works__title">Análise de Conta</h4>
+          <p class="how-it-works__desc">Envie uma foto da conta de energia. A IA extrai e analisa todos os dados automaticamente.</p>
+        </div>
+        <div class="how-it-works__step">
+          <div class="how-it-works__icon">📸</div>
+          <div class="how-it-works__number">Etapa 03</div>
+          <h4 class="how-it-works__title">Mapeamento</h4>
+          <p class="how-it-works__desc">Fotografe equipamentos e quadros elétricos. A IA identifica e calcula o consumo de cada um.</p>
+        </div>
+        <div class="how-it-works__step">
+          <div class="how-it-works__icon">💡</div>
+          <div class="how-it-works__number">Etapa 04</div>
+          <h4 class="how-it-works__title">Diagnóstico IA</h4>
+          <p class="how-it-works__desc">Receba um relatório completo com score de eficiência, insights e projeção de economia em reais.</p>
+        </div>
+        <div class="how-it-works__step">
+          <div class="how-it-works__icon">📊</div>
+          <div class="how-it-works__number">Etapa 05</div>
+          <h4 class="how-it-works__title">Gestão Contínua</h4>
+          <p class="how-it-works__desc">Acompanhe seu histórico, implemente ações e veja sua economia crescer mês a mês.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Highlight -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="text-center" style="margin-bottom:var(--space-12);">
+        <h2>Recursos <span class="text-gradient">Inteligentes</span></h2>
+        <p style="max-width:500px;margin:var(--space-4) auto 0;">Tudo que você precisa para controlar e reduzir gastos com energia</p>
+      </div>
+      <div class="grid grid-3 gap-6 stagger-children">
+        <div class="card card--highlight">
+          <div class="card__header"><div class="card__icon">🔍</div><div><div class="card__title">OCR Inteligente</div><div class="card__subtitle">Análise automática da conta</div></div></div>
+          <div class="card__body">Envie uma foto da conta e a IA extrai consumo, demanda, tarifas, impostos e identifica cobranças indevidas automaticamente.</div>
+        </div>
+        <div class="card card--highlight">
+          <div class="card__header"><div class="card__icon" style="background:var(--gradient-warm);">📊</div><div><div class="card__title">Score Energético</div><div class="card__subtitle">Nota 0-100 de eficiência</div></div></div>
+          <div class="card__body">Compare seu IEE (kWh/m²) com benchmarks do setor e descubra onde seu comércio está desperdiçando energia.</div>
+        </div>
+        <div class="card card--highlight">
+          <div class="card__header"><div class="card__icon" style="background:linear-gradient(135deg,#5AC8FA,#0A84FF);">💰</div><div><div class="card__title">Mercado Livre</div><div class="card__subtitle">Análise de elegibilidade</div></div></div>
+          <div class="card__body">Descubra se seu comércio pode migrar para o Mercado Livre de Energia e economizar de 15% a 35% na conta.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Auth Section -->
+  <section class="section" id="auth-section">
+    <div class="container">
+      <div class="auth-section" id="auth-container">
+        <!-- Sign Up Form (Default) -->
+        <div class="auth-card" id="signup-form">
+          <div class="auth-card__header">
+            <h3 class="auth-card__title">Crie sua conta</h3>
+            <p class="auth-card__subtitle">Comece seu diagnóstico energético gratuito</p>
+          </div>
+          <form id="form-signup" onsubmit="return false;">
+            <div class="form-group">
+              <label class="form-label" for="signup-name">Nome completo</label>
+              <input class="form-input" type="text" id="signup-name" placeholder="Seu nome" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="signup-email">E-mail</label>
+              <input class="form-input" type="email" id="signup-email" placeholder="seu@email.com" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="signup-password">Senha</label>
+              <input class="form-input" type="password" id="signup-password" placeholder="Mínimo 6 caracteres" required minlength="6">
+            </div>
+            <button type="submit" class="btn btn--primary btn--full btn--lg" id="btn-signup-submit">
+              ⚡ Criar Conta & Começar
+            </button>
+          </form>
+          <div class="auth-card__footer">
+            Já tem conta? <a href="#" id="switch-to-login">Entrar</a>
+          </div>
+        </div>
+
+        <!-- Login Form (Hidden) -->
+        <div class="auth-card hidden" id="login-form">
+          <div class="auth-card__header">
+            <h3 class="auth-card__title">Bem-vindo de volta</h3>
+            <p class="auth-card__subtitle">Acesse seu painel de eficiência energética</p>
+          </div>
+          <form id="form-login" onsubmit="return false;">
+            <div class="form-group">
+              <label class="form-label" for="login-email">E-mail</label>
+              <input class="form-input" type="email" id="login-email" placeholder="seu@email.com" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="login-password">Senha</label>
+              <input class="form-input" type="password" id="login-password" placeholder="Sua senha" required>
+            </div>
+            <button type="submit" class="btn btn--primary btn--full btn--lg" id="btn-login-submit">
+              Entrar
+            </button>
+          </form>
+          <div class="auth-card__footer">
+            Não tem conta? <a href="#" id="switch-to-signup">Criar conta grátis</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="landing__footer">
+    <div class="container">
+      <p>⚡ EnergiaPro © 2026 — Eficiência energética inteligente para seu comércio</p>
+    </div>
+  </footer>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>
