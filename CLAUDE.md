@@ -148,9 +148,11 @@ POST direto sem seguir redirect → **falha silenciosa**. Sempre two-step.
 
 ## 5. BUGS CRÍTICOS DO WEBHOOK ⚠️
 
-### Bug 1: `observacao` e `status` quebram a coluna Status
-Enviar `observacao` ou `status` no payload do `update` → Apps Script escreve na coluna **O (Status)**, não P (Observação) → quebra validação restritiva.
-**Workaround:** atualizar Observação manualmente no Sheet.
+### Bug 1: `observacao` escreve na coluna Status (O) — não na Observação (P)
+Enviar `observacao` no payload do `update` → Apps Script escreve na coluna **O (Status)** em vez de P (Observação) → pode quebrar validação restritiva se o valor não for um status válido.
+**Workaround:** nunca enviar `observacao` via webhook. Atualizar coluna P manualmente no Sheet.
+
+**`status` funciona corretamente via webhook** — testado em 13/05/2026. Enviar `status` no `updates` atualiza a coluna O sem quebrar nada, desde que o valor seja válido (`Fechada`, `Pendente`, `Perdida`, `Enviada`, `Lead`).
 
 ### Bug 2: `listAll` esconde histórico
 Filtra Perdida e Fechada. Para análise histórica, exportar Sheet direto.
@@ -370,7 +372,8 @@ Fluxo: Perfil → Conta de energia (OCR) → Equipamentos → Diagnóstico IA �
 
 - ❌ Bajulação de qualquer espécie
 - ❌ Preâmbulos antes da resposta
-- ❌ `observacao` ou `status` no payload de update
+- ❌ `observacao` no payload de update (escreve em Status em vez de Observação)
+- ✅ `status` no payload de update funciona — use com valor válido
 - ❌ POST direto no webhook sem two-step
 - ❌ Confiar em `listAll` para análise histórica
 - ❌ Atribuir vendedor pela assinatura do PDF
