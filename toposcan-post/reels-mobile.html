@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#050507">
+<title>TopoScan — Reels</title>
+<style>
+  :root {
+    --bg: #050507;
+    --fg: #ffffff;
+    --accent: #1166ff;
+    --accent-soft: #4d8aff;
+    --muted: #9aa3b2;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    background: var(--bg);
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    color: var(--fg);
+    font-family: -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  body { position: fixed; inset: 0; }
+
+  /* tela cheia */
+  .stage {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    overflow: hidden;
+  }
+  canvas#scene {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+  }
+
+  /* botão de play (cobre tudo até começar) */
+  .play-overlay {
+    position: fixed; inset: 0;
+    background: rgba(5,5,7,0.95);
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    z-index: 100;
+    text-align: center;
+    padding: 6vh 6vw;
+    transition: opacity 0.4s;
+  }
+  .play-overlay.hidden { opacity: 0; pointer-events: none; }
+
+  .play-overlay .brand {
+    font-size: 8vw; font-weight: 300; letter-spacing: -0.5px;
+    margin-bottom: 1vh;
+  }
+  .play-overlay .brand b { font-weight: 800; }
+  .play-overlay .bar {
+    width: 60px; height: 3px;
+    background: var(--accent);
+    margin: 1vh 0 3vh;
+    box-shadow: 0 0 12px var(--accent);
+  }
+  .play-overlay h2 {
+    font-size: 4.6vw;
+    font-weight: 400;
+    color: var(--muted);
+    margin-bottom: 4vh;
+    line-height: 1.4;
+    max-width: 84vw;
+  }
+  .play-overlay .play-btn {
+    background: var(--accent);
+    color: white;
+    border: 0;
+    padding: 18px 42px;
+    border-radius: 999px;
+    font-size: 4.2vw;
+    font-weight: 700;
+    letter-spacing: 2px;
+    box-shadow: 0 8px 28px rgba(17,102,255,0.5);
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+  .play-overlay .hint {
+    margin-top: 4vh;
+    font-size: 3.4vw;
+    color: var(--muted);
+    line-height: 1.5;
+    max-width: 84vw;
+  }
+  .play-overlay .hint b { color: var(--accent-soft); }
+
+  /* logo / status persistentes */
+  .logo-top {
+    position: absolute;
+    top: 4.5vh; left: 5vw;
+    font-size: 4.5vw; font-weight: 300;
+    letter-spacing: -0.5px;
+    z-index: 30;
+    opacity: 0;
+  }
+  .logo-top b { font-weight: 800; }
+  .status-top {
+    position: absolute;
+    top: 5vh; right: 5vw;
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 2.6vw;
+    color: var(--accent-soft);
+    letter-spacing: 2px;
+    z-index: 30;
+    opacity: 0;
+  }
+  .status-top::before { content: '●'; margin-right: 6px; animation: blink 1.2s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* cenas */
+  .scene {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    text-align: center;
+    padding: 0 7vw;
+    opacity: 0;
+    z-index: 10;
+  }
+
+  /* SCENE 1: Hook */
+  .s1 .eyebrow {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 3vw;
+    color: var(--accent-soft);
+    letter-spacing: 6px;
+    margin-bottom: 3vh;
+  }
+  .s1 h1 {
+    font-size: 13.5vw;
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -1.5px;
+    text-transform: uppercase;
+  }
+  .s1 h1 em { font-style: italic; color: var(--accent-soft); }
+
+  /* SCENE 2 */
+  .s2 { justify-content: flex-end; padding-bottom: 22vh; }
+  .s2 .label {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 3.6vw;
+    letter-spacing: 3px;
+    padding: 12px 22px;
+    border: 1px solid var(--accent);
+    background: rgba(17,102,255,0.12);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* SCENE 3 */
+  .s3 { justify-content: flex-end; padding-bottom: 16vh; }
+  .s3 .eyebrow {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 2.8vw;
+    color: var(--accent-soft);
+    letter-spacing: 5px;
+    margin-bottom: 2vh;
+  }
+  .s3 h2 {
+    font-size: 10vw; font-weight: 800;
+    line-height: 1; letter-spacing: -1px;
+    text-transform: uppercase;
+  }
+  .s3 h2 span { color: var(--accent-soft); }
+
+  /* SCENE 4: CTA */
+  .s4 { justify-content: center; }
+  .s4 .brand {
+    font-size: 11vw; font-weight: 300;
+    letter-spacing: -1px;
+    margin-bottom: 2vh;
+  }
+  .s4 .brand b { font-weight: 800; }
+  .s4 .accent-bar {
+    width: 60px; height: 4px;
+    background: var(--accent);
+    margin: 1vh auto 3vh;
+    box-shadow: 0 0 14px var(--accent);
+  }
+  .s4 .tagline {
+    font-size: 5.6vw; font-weight: 700;
+    line-height: 1.25;
+    margin-bottom: 5vh;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+  }
+  .s4 .tagline em { font-style: normal; color: var(--accent-soft); }
+  .s4 .stats {
+    display: flex; gap: 6vw;
+    justify-content: center;
+    margin-bottom: 5vh;
+  }
+  .s4 .stat .n {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 7.5vw; font-weight: 800;
+    color: var(--accent-soft);
+    line-height: 1;
+  }
+  .s4 .stat .l {
+    font-size: 2.4vw;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-top: 6px;
+    text-transform: uppercase;
+  }
+  .s4 .handle {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 4vw;
+    letter-spacing: 1.5px;
+    margin-top: 2vh;
+  }
+  .s4 .url {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 3vw;
+    color: var(--muted);
+    margin-top: 1vh;
+  }
+
+  /* scanline */
+  .scanline {
+    position: absolute; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    box-shadow: 0 0 18px var(--accent);
+    z-index: 12; mix-blend-mode: screen;
+    opacity: 0;
+  }
+
+  /* === keyframes das cenas (ativam após apertar PLAY) === */
+  .playing .logo-top { animation: fadeIn 0.6s 0.4s forwards; }
+  .playing .status-top { animation: fadeIn 0.6s 0.7s forwards; }
+  @keyframes fadeIn { to { opacity: 1; } }
+
+  .playing .s1 { animation: s1 3s linear forwards; }
+  @keyframes s1 {
+    0%   { opacity: 0; transform: translateY(20px); }
+    15%  { opacity: 1; transform: translateY(0); }
+    85%  { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-20px); }
+  }
+  .playing .s2 { animation: s2 3s linear 3s forwards; }
+  @keyframes s2 { 0%,100%{opacity:0} 15%,85%{opacity:1} }
+
+  .playing .s3 { animation: s3 4s linear 6s forwards; }
+  @keyframes s3 { 0%,100%{opacity:0} 10%,90%{opacity:1} }
+
+  .playing .s4 { animation: s4 5s linear 10s forwards; }
+  @keyframes s4 { 0%{opacity:0} 10%,100%{opacity:1} }
+
+  .playing .scanline { animation: scan 4s linear 2s infinite; }
+  @keyframes scan {
+    0%   { top: 0; opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+  }
+
+  /* contador / barra de progresso para você cronometrar */
+  .progress {
+    position: absolute; top: 0; left: 0; height: 3px;
+    background: var(--accent);
+    z-index: 50;
+    width: 0;
+    opacity: 0;
+  }
+  .playing .progress { animation: prog 15s linear forwards; opacity: 1; }
+  @keyframes prog { from { width: 0; } to { width: 100%; } }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <canvas id="scene"></canvas>
+  <div class="progress"></div>
+  <div class="scanline"></div>
+  <div class="logo-top">TOPO<b>SCAN</b></div>
+  <div class="status-top">REC · 4K</div>
+
+  <div class="scene s1">
+    <div class="eyebrow">PATRIMÔNIO · ETERNO</div>
+    <h1>E SE DESAPARECESSE<br><em>AMANHÃ?</em></h1>
+  </div>
+  <div class="scene s2">
+    <div class="label">SCANNING · 14.2M POINTS</div>
+  </div>
+  <div class="scene s3">
+    <div class="eyebrow">PRECISÃO · ±2MM</div>
+    <h2>A GENTE PRESERVARIA<br>CADA <span>MILÍMETRO.</span></h2>
+  </div>
+  <div class="scene s4">
+    <div class="brand">TOPO<b>SCAN</b></div>
+    <div class="accent-bar"></div>
+    <div class="tagline">Zero margem de erro.<br><em>Para a eternidade.</em></div>
+    <div class="stats">
+      <div class="stat"><div class="n">10+</div><div class="l">ANOS</div></div>
+      <div class="stat"><div class="n">±2mm</div><div class="l">PRECISÃO</div></div>
+      <div class="stat"><div class="n">360°</div><div class="l">REALIDADE</div></div>
+    </div>
+    <div class="handle">@topo.scan</div>
+    <div class="url">toposcan.com.br</div>
+  </div>
+</div>
+
+<div class="play-overlay" id="overlay">
+  <div class="brand">TOPO<b>SCAN</b></div>
+  <div class="bar"></div>
+  <h2>Reels · Patrimônio Eterno<br>Duração 15 segundos</h2>
+  <button class="play-btn" id="playBtn">▶ INICIAR · 15s</button>
+  <div class="hint">
+    <b>ANTES de tocar:</b> comece a gravação de tela do celular.<br>
+    Depois toque INICIAR. A animação roda 1x.
+  </div>
+</div>
+
+<script>
+// ===== canvas: nuvem de pontos animada =====
+const canvas = document.getElementById('scene');
+const ctx = canvas.getContext('2d');
+function resizeCanvas() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+const stage = document.getElementById('stage');
+const overlay = document.getElementById('overlay');
+const playBtn = document.getElementById('playBtn');
+
+let startTime = null;
+let animId = null;
+const DURATION = 15000;
+
+function genChurch() {
+  const W = window.innerWidth, H = window.innerHeight;
+  const cx = W/2, cy = H*0.45;
+  const s = Math.min(W, H*0.5) / 600;
+  const pts = [];
+  // nave
+  for (let i = 0; i < 1800; i++) pts.push([cx + (Math.random()-0.5)*720*s, cy + Math.random()*380*s]);
+  // colunas
+  for (let col = -2; col <= 2; col++) {
+    if (col === 0) continue;
+    for (let i = 0; i < 220; i++)
+      pts.push([cx + col*160*s + (Math.random()-0.5)*8, cy + Math.random()*380*s]);
+  }
+  // telhado
+  for (let i = 0; i < 900; i++) {
+    const t = Math.random();
+    pts.push([cx + (Math.random()-0.5)*720*(1-t)*s, cy - t*240*s]);
+  }
+  // campanário
+  for (let i = 0; i < 750; i++)
+    pts.push([cx + (Math.random()-0.5)*160*s, cy - 240*s - Math.random()*280*s]);
+  for (let i = 0; i < 340; i++) {
+    const t = Math.random();
+    pts.push([cx + (Math.random()-0.5)*160*(1-t)*s, cy - 520*s - t*120*s]);
+  }
+  // cruz
+  for (let i = 0; i < 70; i++)
+    pts.push([cx + (Math.random()-0.5)*10, cy - 640*s - Math.random()*100*s]);
+  for (let i = 0; i < 35; i++)
+    pts.push([cx + (Math.random()-0.5)*70, cy - 680*s + (Math.random()-0.5)*10]);
+  return { pts, cx, cy, s };
+}
+
+let church = genChurch();
+let dispersed = church.pts.map(([x,y]) => [Math.random()*window.innerWidth, Math.random()*window.innerHeight, x, y]);
+
+function lerp(a,b,t){ return a+(b-a)*t; }
+function ease(t){ return t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
+
+function frame() {
+  const W = window.innerWidth, H = window.innerHeight;
+  const t = Math.min((performance.now() - startTime) / DURATION, 1);
+
+  // bg
+  const bg = ctx.createRadialGradient(W/2, H*0.45, 60, W/2, H*0.45, H*0.7);
+  bg.addColorStop(0, '#0a1530');
+  bg.addColorStop(1, '#050507');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  if (t < 0.18) {
+    ctx.globalAlpha = 0.15;
+    ctx.fillStyle = '#1166ff';
+    for (let i = 0; i < 60; i++)
+      ctx.fillRect(Math.random()*W, Math.random()*H, 1, 1);
+  } else if (t < 0.40) {
+    const phase = (t - 0.18) / 0.22;
+    const n = Math.floor(dispersed.length * phase);
+    for (let i = 0; i < n; i++) {
+      const [x, y] = dispersed[i];
+      ctx.globalAlpha = Math.random()*0.6 + 0.3;
+      ctx.fillStyle = Math.random() < 0.2 ? '#ffffff' : '#4d8aff';
+      ctx.fillRect(x, y, Math.random()*2+0.6, Math.random()*2+0.6);
+    }
+  } else if (t < 0.70) {
+    const phase = ease((t - 0.40) / 0.30);
+    for (const [sx, sy, dx, dy] of dispersed) {
+      const x = lerp(sx, dx, phase);
+      const y = lerp(sy, dy, phase);
+      const r = Math.random();
+      ctx.fillStyle = r < 0.15 ? '#ffffff' : (r < 0.55 ? '#4d8aff' : '#1166ff');
+      ctx.globalAlpha = Math.random()*0.5 + 0.4;
+      ctx.fillRect(x, y, Math.random()*1.8+0.6, Math.random()*1.8+0.6);
+    }
+  } else {
+    const breathe = Math.sin((t - 0.70) * Math.PI * 4) * 1.2;
+    for (const [,, dx, dy] of dispersed) {
+      const r = Math.random();
+      ctx.fillStyle = r < 0.15 ? '#ffffff' : (r < 0.55 ? '#4d8aff' : '#1166ff');
+      ctx.globalAlpha = Math.random()*0.5 + 0.4;
+      const jx = (Math.random()-0.5) * 0.8;
+      const jy = (Math.random()-0.5) * 0.8;
+      ctx.fillRect(dx + jx, dy + jy + breathe, Math.random()*1.8+0.6, Math.random()*1.8+0.6);
+    }
+    // wireframe
+    ctx.globalAlpha = ((t - 0.70) / 0.30) * 0.5;
+    ctx.strokeStyle = '#4d8aff';
+    ctx.lineWidth = 1.5;
+    const { cx, cy, s } = church;
+    ctx.beginPath();
+    ctx.moveTo(cx - 360*s, cy + 380*s);
+    ctx.lineTo(cx - 360*s, cy);
+    ctx.lineTo(cx - 80*s, cy);
+    ctx.lineTo(cx - 80*s, cy - 640*s);
+    ctx.moveTo(cx + 80*s, cy - 640*s);
+    ctx.lineTo(cx + 80*s, cy);
+    ctx.lineTo(cx + 360*s, cy);
+    ctx.lineTo(cx + 360*s, cy + 380*s);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 640*s); ctx.lineTo(cx, cy - 740*s);
+    ctx.moveTo(cx - 35*s, cy - 680*s); ctx.lineTo(cx + 35*s, cy - 680*s);
+    ctx.stroke();
+  }
+
+  if (t < 1) animId = requestAnimationFrame(frame);
+}
+
+playBtn.addEventListener('click', () => {
+  // tenta entrar em fullscreen (Android — iOS Safari não suporta)
+  const el = document.documentElement;
+  if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+
+  overlay.classList.add('hidden');
+  stage.classList.add('playing');
+  church = genChurch();
+  dispersed = church.pts.map(([x,y]) => [Math.random()*window.innerWidth, Math.random()*window.innerHeight, x, y]);
+  startTime = performance.now();
+  frame();
+
+  // reseta após 16s para poder regravar sem recarregar
+  setTimeout(() => {
+    stage.classList.remove('playing');
+    overlay.classList.remove('hidden');
+    cancelAnimationFrame(animId);
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+  }, 16000);
+});
+</script>
+</body>
+</html>
