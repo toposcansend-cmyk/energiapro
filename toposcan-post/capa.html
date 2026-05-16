@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>TopoScan — Capa Reels (Patrimônio Eterno)</title>
+<style>
+  :root {
+    --bg: #050507;
+    --fg: #ffffff;
+    --accent: #1166ff;
+    --accent-soft: #4d8aff;
+    --muted: #9aa3b2;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #1a1a1a; }
+  body {
+    display: grid; place-items: center;
+    min-height: 100vh;
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    padding: 20px;
+  }
+  .frame {
+    width: 1080px; height: 1920px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    transform-origin: top center;
+    transform: scale(0.42);
+    margin-bottom: -1110px;
+    color: var(--fg);
+  }
+  /* fundo: igreja em nuvem de pontos */
+  #scene {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+  }
+  /* tarja gradient inferior (assinatura TopoScan) */
+  .overlay {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 65%;
+    background:
+      linear-gradient(180deg,
+        transparent 0%,
+        rgba(5,5,7,0.45) 30%,
+        rgba(5,5,7,0.88) 60%,
+        rgba(5,5,7,0.98) 100%);
+    z-index: 2;
+  }
+  .accent-glow {
+    position: absolute; left: -20%; bottom: -10%;
+    width: 80%; height: 50%;
+    background: radial-gradient(ellipse, rgba(17,102,255,0.35), transparent 60%);
+    filter: blur(40px);
+    z-index: 2;
+  }
+  /* logo topo */
+  .header {
+    position: absolute; top: 80px; left: 80px; right: 80px;
+    display: flex; justify-content: space-between; align-items: center;
+    z-index: 10;
+  }
+  .logo {
+    font-size: 44px; font-weight: 300;
+    letter-spacing: -1px;
+    color: var(--fg);
+  }
+  .logo b { font-weight: 800; }
+  .tag {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 16px;
+    color: var(--accent-soft);
+    letter-spacing: 3px;
+    border: 1px solid rgba(77,138,255,0.5);
+    padding: 8px 14px;
+    border-radius: 4px;
+  }
+  /* área de texto inferior */
+  .content {
+    position: absolute; bottom: 200px; left: 80px; right: 80px;
+    z-index: 5;
+    padding-left: 32px;
+    border-left: 4px solid var(--accent);
+  }
+  .eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 18px;
+    color: var(--accent-soft);
+    letter-spacing: 4px;
+    margin-bottom: 24px;
+    text-transform: uppercase;
+  }
+  h1 {
+    font-size: 96px;
+    font-weight: 800;
+    line-height: 1.0;
+    letter-spacing: -2px;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+  h1 .highlight { color: var(--accent-soft); }
+  .sub {
+    font-size: 30px;
+    font-weight: 400;
+    color: var(--muted);
+    line-height: 1.35;
+    max-width: 780px;
+  }
+  /* rodapé */
+  .footer {
+    position: absolute; bottom: 70px; left: 80px; right: 80px;
+    display: flex; justify-content: space-between; align-items: center;
+    z-index: 10;
+    padding-top: 28px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .handle {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 22px;
+    color: var(--fg);
+    letter-spacing: 1px;
+  }
+  .swipe {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 16px;
+    color: var(--accent-soft);
+    letter-spacing: 3px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .swipe::after {
+    content: '→';
+    font-size: 20px;
+    animation: nudge 1.6s ease-in-out infinite;
+  }
+  @keyframes nudge {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(8px); }
+  }
+  /* linha de scan animada */
+  .scanline {
+    position: absolute; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    box-shadow: 0 0 24px var(--accent), 0 0 60px var(--accent);
+    animation: scan 5s ease-in-out infinite;
+    z-index: 6; opacity: 0.7;
+    mix-blend-mode: screen;
+  }
+  @keyframes scan {
+    0%   { top: 15%; opacity: 0; }
+    10%  { opacity: 0.9; }
+    50%  { top: 55%; opacity: 0.9; }
+    90%  { opacity: 0.9; }
+    100% { top: 95%; opacity: 0; }
+  }
+  /* coordenadas decorativas */
+  .coords {
+    position: absolute;
+    top: 200px; right: 80px;
+    z-index: 6;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 14px;
+    color: rgba(255,255,255,0.4);
+    text-align: right;
+    line-height: 1.8;
+  }
+  .coords b { color: var(--accent-soft); font-weight: 400; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <canvas id="scene" width="1080" height="1920"></canvas>
+  <div class="overlay"></div>
+  <div class="accent-glow"></div>
+  <div class="scanline"></div>
+
+  <div class="header">
+    <div class="logo">TOPO<b>SCAN</b></div>
+    <div class="tag">● LIVE SCAN</div>
+  </div>
+
+  <div class="coords">
+    LAT  <b>-27.5954°</b><br>
+    LONG <b>-48.5480°</b><br>
+    POINTS <b>14.2M</b><br>
+    PRECISION <b>±2MM</b>
+  </div>
+
+  <div class="content">
+    <div class="eyebrow">Patrimônio · Capítulo 01</div>
+    <h1>E SE DESAPARECESSE <span class="highlight">AMANHÃ?</span></h1>
+    <div class="sub">A gente preservaria cada milímetro.<br>Para sempre.</div>
+  </div>
+
+  <div class="footer">
+    <div class="handle">@topo.scan</div>
+    <div class="swipe">DESLIZE</div>
+  </div>
+</div>
+
+<script>
+// silhueta de igreja em nuvem de pontos (procedural, sem foto)
+const canvas = document.getElementById('scene');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+// gradient sutil de fundo
+const bgGrad = ctx.createRadialGradient(W/2, H*0.35, 100, W/2, H*0.35, H*0.7);
+bgGrad.addColorStop(0, '#0a1530');
+bgGrad.addColorStop(1, '#050507');
+ctx.fillStyle = bgGrad;
+ctx.fillRect(0, 0, W, H);
+
+// pontos da igreja
+function generateChurch() {
+  const pts = [];
+  const cx = W/2, cy = H*0.42;
+  const scale = 1.4;
+
+  // nave (corpo principal)
+  for (let i = 0; i < 2200; i++) {
+    const x = cx + (Math.random() - 0.5) * 720 * scale;
+    const y = cy + (Math.random() * 380) * scale;
+    pts.push([x, y, 1]);
+  }
+  // colunas (linhas verticais mais densas)
+  for (let col = -2; col <= 2; col++) {
+    if (col === 0) continue;
+    for (let i = 0; i < 280; i++) {
+      const x = cx + col * 160 * scale + (Math.random()-0.5)*8;
+      const y = cy + Math.random() * 380 * scale;
+      pts.push([x, y, 1.2]);
+    }
+  }
+  // telhado triangular
+  for (let i = 0; i < 1100; i++) {
+    const t = Math.random();
+    const w = 720 * (1 - t) * scale;
+    const x = cx + (Math.random() - 0.5) * w;
+    const y = cy - t * 240 * scale + (Math.random()-0.5)*4;
+    pts.push([x, y, 0.9]);
+  }
+  // campanário (torre central)
+  for (let i = 0; i < 900; i++) {
+    const x = cx + (Math.random() - 0.5) * 160 * scale;
+    const y = cy - 240 * scale - Math.random() * 280 * scale;
+    pts.push([x, y, 1]);
+  }
+  // topo do campanário
+  for (let i = 0; i < 400; i++) {
+    const t = Math.random();
+    const w = 160 * (1 - t) * scale;
+    const x = cx + (Math.random() - 0.5) * w;
+    const y = cy - 520 * scale - t * 120 * scale;
+    pts.push([x, y, 0.8]);
+  }
+  // cruz
+  for (let i = 0; i < 80; i++) {
+    pts.push([cx + (Math.random()-0.5)*10, cy - 640*scale - Math.random()*100*scale, 1.2]);
+  }
+  for (let i = 0; i < 40; i++) {
+    pts.push([cx + (Math.random()-0.5)*70, cy - 680*scale + (Math.random()-0.5)*10, 1.2]);
+  }
+  // janelas (pequenos buracos — pontos faltando)
+  return pts;
+}
+
+const points = generateChurch();
+
+// desenha pontos com variação de cor (azul + branco)
+points.forEach(([x, y, intensity]) => {
+  const r = Math.random();
+  let color;
+  if (r < 0.15) color = '#ffffff';
+  else if (r < 0.55) color = '#4d8aff';
+  else color = '#1166ff';
+
+  const size = (Math.random() * 1.8 + 0.5) * intensity;
+  ctx.globalAlpha = (Math.random() * 0.55 + 0.35);
+  ctx.fillStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = size * 2;
+  ctx.fillRect(x, y, size, size);
+});
+
+// alguns "ruídos" — pontos isolados ao redor (ambient cloud)
+ctx.shadowBlur = 0;
+for (let i = 0; i < 600; i++) {
+  ctx.globalAlpha = Math.random() * 0.2;
+  ctx.fillStyle = '#4d8aff';
+  ctx.fillRect(Math.random() * W, Math.random() * H, 1, 1);
+}
+
+// linhas de varredura horizontais sutis
+ctx.globalAlpha = 0.04;
+ctx.fillStyle = '#1166ff';
+for (let y = 0; y < H; y += 4) {
+  ctx.fillRect(0, y, W, 1);
+}
+</script>
+</body>
+</html>
