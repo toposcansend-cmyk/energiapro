@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-br"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1080,initial-scale=0.35">
+<title>Slide 2</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;display:grid;place-items:center;min-height:100vh;font-family:-apple-system,system-ui,sans-serif}
+.f{width:1080px;height:1920px;background:radial-gradient(ellipse at center,#0a1530 0%,#050507 80%);position:relative;color:#fff;overflow:hidden}
+.logo{position:absolute;top:80px;left:80px;font-size:44px;font-weight:300;letter-spacing:-1px;z-index:10}
+.logo b{font-weight:800}
+.status{position:absolute;top:90px;right:80px;font-family:ui-monospace,monospace;font-size:18px;color:#4d8aff;letter-spacing:3px;z-index:10}
+.status::before{content:'● ';color:#4d8aff}
+.bar{position:absolute;top:0;left:0;height:4px;width:38%;background:#1166ff;box-shadow:0 0 12px #1166ff;z-index:10}
+/* pontos espalhados pela tela */
+.cloud{position:absolute;inset:0}
+.cloud::before, .cloud::after{
+  content:'';position:absolute;inset:0;
+  background-image:
+    radial-gradient(#4d8aff 1.5px, transparent 2px),
+    radial-gradient(#1166ff 1px, transparent 1.5px),
+    radial-gradient(#fff 1px, transparent 1.5px);
+  background-size: 40px 40px, 60px 60px, 90px 90px;
+  background-position: 0 0, 20px 30px, 40px 10px;
+  opacity:.7;
+}
+.cloud::after{transform:rotate(15deg);opacity:.4}
+.scanline{position:absolute;top:55%;left:0;right:0;height:6px;background:linear-gradient(90deg,transparent,#1166ff,transparent);box-shadow:0 0 30px #1166ff,0 0 60px #1166ff;z-index:5}
+.label{position:absolute;left:50%;bottom:25%;transform:translateX(-50%);font-family:ui-monospace,monospace;font-size:36px;color:#fff;letter-spacing:6px;padding:20px 36px;border:2px solid #1166ff;background:rgba(17,102,255,0.15);z-index:10;backdrop-filter:blur(8px)}
+.coords{position:absolute;bottom:160px;left:80px;font-family:ui-monospace,monospace;font-size:18px;color:rgba(255,255,255,.5);line-height:1.8;z-index:10}
+.coords b{color:#4d8aff;font-weight:400}
+</style></head>
+<body><div class="f">
+<div class="bar"></div>
+<div class="cloud"></div>
+<div class="scanline"></div>
+<div class="logo">TOPO<b>SCAN</b></div>
+<div class="status">REC · 4K</div>
+<div class="label">SCANNING · 14.2M POINTS</div>
+<div class="coords">LAT&nbsp;&nbsp;<b>-27.5954°</b><br>LONG&nbsp;<b>-48.5480°</b><br>PRECISION&nbsp;<b>±2MM</b></div>
+</div></body></html>

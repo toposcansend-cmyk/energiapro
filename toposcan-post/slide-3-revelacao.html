@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="pt-br"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1080,initial-scale=0.35">
+<title>Slide 3</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;display:grid;place-items:center;min-height:100vh;font-family:-apple-system,system-ui,sans-serif}
+.f{width:1080px;height:1920px;background:radial-gradient(ellipse at center,#0a1530 0%,#050507 80%);position:relative;color:#fff;overflow:hidden}
+.logo{position:absolute;top:80px;left:80px;font-size:44px;font-weight:300;letter-spacing:-1px;z-index:10}
+.logo b{font-weight:800}
+.status{position:absolute;top:90px;right:80px;font-family:ui-monospace,monospace;font-size:18px;color:#4d8aff;letter-spacing:3px;z-index:10}
+.status::before{content:'● ';color:#4d8aff}
+.bar{position:absolute;top:0;left:0;height:4px;width:65%;background:#1166ff;box-shadow:0 0 12px #1166ff;z-index:10}
+/* igreja com SVG */
+.church{position:absolute;top:42%;left:50%;transform:translate(-50%,-50%);z-index:3}
+.glow{position:absolute;top:42%;left:50%;transform:translate(-50%,-50%);width:90%;height:60%;background:radial-gradient(ellipse,rgba(17,102,255,.3),transparent 70%);filter:blur(40px);z-index:2}
+.content{position:absolute;bottom:240px;left:80px;right:80px;padding-left:32px;border-left:4px solid #1166ff;z-index:10}
+.eye{font-family:ui-monospace,monospace;font-size:20px;color:#4d8aff;letter-spacing:5px;margin-bottom:28px}
+h2{font-size:100px;font-weight:800;line-height:0.95;letter-spacing:-2px;text-transform:uppercase}
+h2 span{color:#4d8aff}
+</style></head>
+<body><div class="f">
+<div class="bar"></div>
+<div class="logo">TOPO<b>SCAN</b></div>
+<div class="status">REC · 4K</div>
+<div class="glow"></div>
+<svg class="church" width="700" height="700" viewBox="0 0 700 700" xmlns="http://www.w3.org/2000/svg">
+  <!-- silhueta de igreja em pontos -->
+  <g id="pts"></g>
+  <script type="text/javascript">
+    <![CDATA[
+    (function(){
+      const g = document.getElementById('pts');
+      function pt(x, y) {
+        const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        c.setAttribute('cx', x); c.setAttribute('cy', y);
+        c.setAttribute('r', Math.random()*1.2 + 0.6);
+        const r = Math.random();
+        c.setAttribute('fill', r<0.15?'#fff':(r<0.55?'#4d8aff':'#1166ff'));
+        c.setAttribute('opacity', Math.random()*0.5+0.4);
+        g.appendChild(c);
+      }
+      const cx = 350, cy = 450;
+      // nave
+      for(let i=0;i<700;i++) pt(cx+(Math.random()-0.5)*450, cy+Math.random()*200);
+      // colunas
+      for(let col of [-1.5,-0.7,0.7,1.5]) for(let i=0;i<100;i++) pt(cx+col*100, cy+Math.random()*200);
+      // telhado
+      for(let i=0;i<350;i++){const t=Math.random();pt(cx+(Math.random()-0.5)*450*(1-t), cy-t*150);}
+      // campanário
+      for(let i=0;i<280;i++) pt(cx+(Math.random()-0.5)*100, cy-150-Math.random()*180);
+      // topo campanário
+      for(let i=0;i<130;i++){const t=Math.random();pt(cx+(Math.random()-0.5)*100*(1-t), cy-330-t*80);}
+      // cruz
+      for(let i=0;i<30;i++) pt(cx+(Math.random()-0.5)*6, cy-420-Math.random()*60);
+      for(let i=0;i<15;i++) pt(cx+(Math.random()-0.5)*40, cy-440+(Math.random()-0.5)*6);
+    })();
+    ]]>
+  </script>
+</svg>
+<div class="content">
+<div class="eye">PRECISÃO · ±2MM</div>
+<h2>A GENTE PRESERVARIA<br>CADA <span>MILÍMETRO.</span></h2>
+</div>
+</div>
+<script>
+// fallback caso script inline do SVG não rode
+const g = document.getElementById('pts');
+if (g && g.children.length === 0) {
+  const svgNS = 'http://www.w3.org/2000/svg';
+  function pt(x, y) {
+    const c = document.createElementNS(svgNS, 'circle');
+    c.setAttribute('cx', x); c.setAttribute('cy', y);
+    c.setAttribute('r', Math.random()*1.2 + 0.6);
+    const r = Math.random();
+    c.setAttribute('fill', r<0.15?'#fff':(r<0.55?'#4d8aff':'#1166ff'));
+    c.setAttribute('opacity', Math.random()*0.5+0.4);
+    g.appendChild(c);
+  }
+  const cx = 350, cy = 450;
+  for(let i=0;i<700;i++) pt(cx+(Math.random()-0.5)*450, cy+Math.random()*200);
+  for(let col of [-1.5,-0.7,0.7,1.5]) for(let i=0;i<100;i++) pt(cx+col*100, cy+Math.random()*200);
+  for(let i=0;i<350;i++){const t=Math.random();pt(cx+(Math.random()-0.5)*450*(1-t), cy-t*150);}
+  for(let i=0;i<280;i++) pt(cx+(Math.random()-0.5)*100, cy-150-Math.random()*180);
+  for(let i=0;i<130;i++){const t=Math.random();pt(cx+(Math.random()-0.5)*100*(1-t), cy-330-t*80);}
+  for(let i=0;i<30;i++) pt(cx+(Math.random()-0.5)*6, cy-420-Math.random()*60);
+  for(let i=0;i<15;i++) pt(cx+(Math.random()-0.5)*40, cy-440+(Math.random()-0.5)*6);
+}
+</script>
+</body></html>
