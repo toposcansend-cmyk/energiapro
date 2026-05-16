@@ -1,0 +1,761 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>render</title>
+<style>
+  *{margin:0;padding:0}
+  html,body{background:#000;width:1080px;height:1920px;overflow:hidden}
+  canvas{display:block}
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+const W = 1080, H = 1920;
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+
+// ===== utils =====
+const lerp = (a,b,t) => a + (b-a)*t;
+const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
+const ease = t => t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+const easeOut = t => 1 - Math.pow(1-t, 3);
+const easeIn = t => t*t*t;
+const smoothstep = (e0,e1,x) => {
+  const t = clamp((x-e0)/(e1-e0), 0, 1);
+  return t*t*(3-2*t);
+};
+
+// ===== seeded random =====
+let seed = 12345;
+function srand() {
+  seed = (seed * 9301 + 49297) % 233280;
+  return seed / 233280;
+}
+function reseed(s) { seed = s; }
+
+// ===== precompute: catedral em pontos =====
+function generateCathedral() {
+  reseed(42);
+  const pts = [];
+  const cx = W/2, cy = H*0.48;
+  const s = 1.55;
+
+  // nave (corpo)
+  for (let i = 0; i < 3200; i++) {
+    pts.push({
+      x: cx + (srand()-0.5) * 720*s,
+      y: cy + srand() * 380*s,
+      r: srand()*1.3 + 0.5,
+      c: srand() < 0.18 ? '#ffffff' : (srand() < 0.55 ? '#4d8aff' : '#1166ff')
+    });
+  }
+  // colunas verticais (mais densas)
+  for (let col of [-2.2, -1.1, 1.1, 2.2]) {
+    for (let i = 0; i < 320; i++) {
+      pts.push({
+        x: cx + col*150*s + (srand()-0.5)*6,
+        y: cy + srand() * 380*s,
+        r: srand()*1.4 + 0.6,
+        c: srand() < 0.18 ? '#ffffff' : (srand() < 0.55 ? '#4d8aff' : '#1166ff')
+      });
+    }
+  }
+  // telhado triangular
+  for (let i = 0; i < 1500; i++) {
+    const t = srand();
+    pts.push({
+      x: cx + (srand()-0.5)*720*(1-t)*s,
+      y: cy - t*240*s + (srand()-0.5)*3,
+      r: srand()*1.2 + 0.5,
+      c: srand() < 0.18 ? '#ffffff' : (srand() < 0.55 ? '#4d8aff' : '#1166ff')
+    });
+  }
+  // campanário central (torre)
+  for (let i = 0; i < 1200; i++) {
+    pts.push({
+      x: cx + (srand()-0.5)*160*s,
+      y: cy - 240*s - srand()*280*s,
+      r: srand()*1.3 + 0.5,
+      c: srand() < 0.18 ? '#ffffff' : (srand() < 0.55 ? '#4d8aff' : '#1166ff')
+    });
+  }
+  // topo do campanário
+  for (let i = 0; i < 500; i++) {
+    const t = srand();
+    pts.push({
+      x: cx + (srand()-0.5)*160*(1-t)*s,
+      y: cy - 520*s - t*120*s,
+      r: srand()*1.1 + 0.5,
+      c: srand() < 0.18 ? '#ffffff' : (srand() < 0.55 ? '#4d8aff' : '#1166ff')
+    });
+  }
+  // cruz vertical
+  for (let i = 0; i < 110; i++) {
+    pts.push({
+      x: cx + (srand()-0.5)*8,
+      y: cy - 640*s - srand()*100*s,
+      r: srand()*1.3 + 0.6,
+      c: srand() < 0.3 ? '#ffffff' : '#4d8aff'
+    });
+  }
+  // cruz horizontal
+  for (let i = 0; i < 50; i++) {
+    pts.push({
+      x: cx + (srand()-0.5)*70,
+      y: cy - 680*s + (srand()-0.5)*8,
+      r: srand()*1.3 + 0.6,
+      c: srand() < 0.3 ? '#ffffff' : '#4d8aff'
+    });
+  }
+  // janelas vazias (remove pontos em retângulos)
+  const windows = [
+    {x: -280*s, y: -100*s, w: 80, h: 140},
+    {x: -140*s, y: -100*s, w: 80, h: 140},
+    {x: 60*s, y: -100*s, w: 80, h: 140},
+    {x: 200*s, y: -100*s, w: 80, h: 140}
+  ];
+  // adiciona alguns pontos "ambientes" ao redor
+  for (let i = 0; i < 500; i++) {
+    pts.push({
+      x: cx + (srand()-0.5)*1100,
+      y: cy + (srand()-0.5)*1500,
+      r: srand()*0.6 + 0.2,
+      c: '#1166ff',
+      ambient: true
+    });
+  }
+  return pts;
+}
+
+const cathedral = generateCathedral();
+// posição dispersa inicial (aleatória) para cada ponto
+reseed(99);
+const dispersed = cathedral.map((p) => ({
+  sx: srand() * W,
+  sy: srand() * H,
+  ...p
+}));
+// posições "estrelas" — espalhadas no céu (zona superior)
+reseed(7);
+const stars = [];
+for (let i = 0; i < 1400; i++) {
+  stars.push({
+    x: srand() * W,
+    y: srand() * H * 0.85,
+    r: srand()*1.5 + 0.4,
+    speed: 0.4 + srand()*1.2,
+    bright: srand()*0.7 + 0.4
+  });
+}
+
+// ===== renderização principal =====
+function render(t) {
+  // t em segundos (0..18)
+  ctx.clearRect(0, 0, W, H);
+
+  // ===== Cena 0: 0-3s — Crepúsculo + scanner + estrelas =====
+  if (t < 3.2) {
+    const p = t / 3.2; // 0..1
+    drawSky(p);
+    drawStars(t, p);
+    drawSkyline(p);
+    drawTripod(p, t);
+    drawTitle0(t);
+  }
+  // Transição 3.0-3.4: fade
+  // ===== Cena 1: 3-6s — Estrelas explodem em nuvem caótica =====
+  if (t >= 2.8 && t < 6.2) {
+    const fadeIn = smoothstep(2.8, 3.4, t);
+    const local = clamp((t - 3.0) / 3.0, 0, 1);
+    ctx.save();
+    ctx.globalAlpha = fadeIn;
+    drawDarkBg(local);
+    drawChaoticPoints(local, t);
+    drawTitle1(t);
+    ctx.restore();
+  }
+  // ===== Cena 2: 6-10s — Pontos formam catedral =====
+  if (t >= 5.8 && t < 10.2) {
+    const fadeIn = smoothstep(5.8, 6.3, t);
+    const fadeOut = 1 - smoothstep(9.7, 10.2, t);
+    // catedral forma em 2.5s (rápido), depois fica estável até a próxima cena
+    const local = clamp((t - 6.0) / 2.5, 0, 1);
+    ctx.save();
+    ctx.globalAlpha = fadeIn * fadeOut;
+    drawDarkBg(1);
+    drawCathedralForming(local, t);
+    drawTitle2(t);
+    ctx.restore();
+  }
+  // ===== Cena 3: 10-14s — Wireframe + HUD =====
+  if (t >= 9.8 && t < 14.2) {
+    const fadeIn = smoothstep(9.8, 10.3, t);
+    const fadeOut = 1 - smoothstep(13.7, 14.2, t);
+    const local = clamp((t - 10.0) / 4.0, 0, 1);
+    ctx.save();
+    ctx.globalAlpha = fadeIn * fadeOut;
+    drawDarkBg(1);
+    drawCathedralWithWireframe(local, t);
+    drawHUD(local, t);
+    drawTitle3(t);
+    ctx.restore();
+  }
+  // ===== Cena 4: 14-18s — CTA =====
+  if (t >= 13.8) {
+    const fadeIn = smoothstep(13.8, 14.3, t);
+    const local = clamp((t - 14.0) / 4.0, 0, 1);
+    ctx.save();
+    ctx.globalAlpha = fadeIn;
+    drawDarkBg(1);
+    drawCathedralFaded(t);
+    drawCTA(local, t);
+    ctx.restore();
+  }
+
+  // overlay global: header (logo + status) — sempre visível
+  if (t >= 0.5 && t < 14.5) {
+    drawHeader(t);
+  }
+  // progress bar global
+  drawProgressBar(t);
+}
+
+// ===== ELEMENTOS =====
+function drawSky(p) {
+  // gradient crepúsculo → noite (transição mais longa, mantém cores quentes mais tempo)
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  if (p < 0.8) {
+    // crepúsculo dramático: laranja-rosa-roxo
+    const e = p / 0.8;
+    grad.addColorStop(0, `rgb(${lerp(35,8,e)}, ${lerp(20,12,e)}, ${lerp(70,30,e)})`);
+    grad.addColorStop(0.30, `rgb(${lerp(110,15,e)}, ${lerp(40,25,e)}, ${lerp(110,55,e)})`);
+    grad.addColorStop(0.55, `rgb(${lerp(220,25,e)}, ${lerp(95,18,e)}, ${lerp(90,50,e)})`);
+    grad.addColorStop(0.80, `rgb(${lerp(230,18,e)}, ${lerp(120,15,e)}, ${lerp(70,35,e)})`);
+    grad.addColorStop(1, `rgb(${lerp(80,5,e)}, ${lerp(40,8,e)}, ${lerp(50,15,e)})`);
+  } else {
+    // entrando na noite
+    const e = (p - 0.8) / 0.2;
+    grad.addColorStop(0, `rgb(${lerp(8,3,e)}, ${lerp(12,5,e)}, ${lerp(30,15,e)})`);
+    grad.addColorStop(0.6, `rgb(${lerp(25,5,e)}, ${lerp(18,8,e)}, ${lerp(50,20,e)})`);
+    grad.addColorStop(1, `rgb(${lerp(5,2,e)}, ${lerp(8,3,e)}, ${lerp(15,8,e)})`);
+  }
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function drawStars(t, p) {
+  // estrelas com trail (rotação rápida = time-lapse)
+  // o centro de rotação está fora do quadro (acima)
+  const rotCx = W/2;
+  const rotCy = -H*0.4; // centro mais próximo = arcos visíveis no quadro
+  const angle = t * 1.2; // bem rápido pra time-lapse
+
+  ctx.save();
+  // estrelas aparecem desde o começo, ficam mais brilhantes conforme escurece
+  const visibility = smoothstep(0.0, 0.6, p);
+
+  for (let i = 0; i < stars.length; i++) {
+    const s = stars[i];
+    const dx = s.x - rotCx;
+    const dy = s.y - rotCy;
+    const a0 = Math.atan2(dy, dx);
+    const r = Math.sqrt(dx*dx + dy*dy);
+    const aNow = a0 + angle * s.speed;
+
+    // desenha trilha como linha curva: vários segmentos com alpha decrescente
+    const TRAIL_PTS = 35;
+    const trailAngle = 0.025 * s.speed; // spread total da trail em radianos
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineCap = 'round';
+    for (let k = 0; k < TRAIL_PTS - 1; k++) {
+      const t1 = k / TRAIL_PTS;
+      const t2 = (k + 1) / TRAIL_PTS;
+      const a1 = aNow - trailAngle * t1;
+      const a2 = aNow - trailAngle * t2;
+      const x1 = rotCx + r * Math.cos(a1);
+      const y1 = rotCy + r * Math.sin(a1);
+      const x2 = rotCx + r * Math.cos(a2);
+      const y2 = rotCy + r * Math.sin(a2);
+      if (y1 > H && y2 > H) continue;
+      const alpha = s.bright * (1 - t1) * visibility;
+      ctx.globalAlpha = alpha;
+      ctx.lineWidth = s.r * (1 - t1*0.6);
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    }
+    // ponto principal da estrela (cabeça da trilha) bem brilhante
+    const headX = rotCx + r * Math.cos(aNow);
+    const headY = rotCy + r * Math.sin(aNow);
+    if (headY < H && headY > 0) {
+      ctx.globalAlpha = s.bright * visibility;
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 6;
+      ctx.fillRect(headX - s.r/2, headY - s.r/2, s.r * 1.5, s.r * 1.5);
+      ctx.shadowBlur = 0;
+    }
+  }
+  ctx.restore();
+}
+
+function drawSkyline(p) {
+  // perfil de cidade na base
+  ctx.save();
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+  ctx.beginPath();
+  ctx.moveTo(0, H);
+  ctx.lineTo(0, H*0.78);
+  const buildings = [
+    [0.05, 0.74], [0.08, 0.76], [0.12, 0.70], [0.16, 0.73],
+    [0.22, 0.68], [0.28, 0.72], [0.35, 0.65], [0.42, 0.71],
+    [0.48, 0.74], [0.55, 0.67], [0.62, 0.73], [0.68, 0.69],
+    [0.75, 0.72], [0.82, 0.66], [0.88, 0.74], [0.94, 0.70], [1.0, 0.75]
+  ];
+  for (const [x, y] of buildings) {
+    ctx.lineTo(x*W, y*H);
+  }
+  ctx.lineTo(W, H);
+  ctx.closePath();
+  ctx.fill();
+
+  // janelinhas acesas (pequenos pontos amarelos)
+  reseed(123);
+  ctx.fillStyle = `rgba(255, 200, 100, ${0.5 + p*0.4})`;
+  for (let i = 0; i < 60; i++) {
+    const x = srand() * W;
+    const y = H * (0.7 + srand() * 0.2);
+    ctx.fillRect(x, y, 2, 2);
+  }
+  ctx.restore();
+}
+
+function drawTripod(p, t) {
+  // posição: centro inferior
+  const cx = W/2;
+  const baseY = H * 0.82;
+  const topY = H * 0.55;
+
+  // sombra/silhueta do tripé
+  ctx.save();
+  ctx.strokeStyle = '#0a0a0f';
+  ctx.lineWidth = 8;
+  ctx.lineCap = 'round';
+
+  // 3 pernas (esquerda, direita, frente)
+  ctx.beginPath();
+  ctx.moveTo(cx - 90, baseY);
+  ctx.lineTo(cx, topY);
+  ctx.moveTo(cx + 90, baseY);
+  ctx.lineTo(cx, topY);
+  ctx.moveTo(cx, baseY + 5);
+  ctx.lineTo(cx, topY);
+  ctx.stroke();
+
+  // scanner laser (caixa retangular)
+  ctx.fillStyle = '#15151a';
+  ctx.fillRect(cx - 60, topY - 100, 120, 100);
+  ctx.strokeStyle = '#22232b';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(cx - 60, topY - 100, 120, 100);
+
+  // janela verde brilhante (laser)
+  const greenPulse = 0.7 + 0.3 * Math.sin(t * 8);
+  ctx.fillStyle = `rgba(0, 255, 120, ${0.85 * greenPulse})`;
+  ctx.fillRect(cx - 35, topY - 75, 70, 50);
+  ctx.shadowColor = '#00ff78';
+  ctx.shadowBlur = 30 * greenPulse;
+  ctx.fillRect(cx - 35, topY - 75, 70, 50);
+  ctx.shadowBlur = 0;
+
+  // antena no topo do scanner
+  ctx.strokeStyle = '#22232b';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(cx, topY - 100);
+  ctx.lineTo(cx, topY - 130);
+  ctx.stroke();
+
+  // feixe laser rotacionando (linha verde fina)
+  const beamAngle = t * 4;
+  ctx.strokeStyle = `rgba(0, 255, 120, ${0.4 * greenPulse})`;
+  ctx.shadowColor = '#00ff78';
+  ctx.shadowBlur = 20;
+  ctx.lineWidth = 2;
+  for (let k = 0; k < 3; k++) {
+    const a = beamAngle + k * (2*Math.PI/3);
+    const bx = cx + Math.cos(a) * 500;
+    const by = (topY - 50) + Math.sin(a) * 500;
+    ctx.beginPath();
+    ctx.moveTo(cx, topY - 50);
+    ctx.lineTo(bx, by);
+    ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+function drawDarkBg(intensity) {
+  // fundo escuro com glow azul central
+  const grad = ctx.createRadialGradient(W/2, H*0.45, 80, W/2, H*0.45, H*0.7);
+  grad.addColorStop(0, `rgba(10, 21, 48, ${intensity})`);
+  grad.addColorStop(1, `rgba(5, 5, 7, ${intensity})`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function drawChaoticPoints(local, t) {
+  // pontos caóticos se multiplicando — efeito "scanning"
+  reseed(local < 0.5 ? Math.floor(t * 8) : 234);
+  const count = Math.floor(2500 * local + 500);
+  for (let i = 0; i < count; i++) {
+    const x = srand() * W;
+    const y = srand() * H;
+    const r = srand() * 1.5 + 0.4;
+    const colorR = srand();
+    ctx.fillStyle = colorR < 0.15 ? '#ffffff' : (colorR < 0.55 ? '#4d8aff' : '#1166ff');
+    ctx.globalAlpha = srand() * 0.6 + 0.3;
+    ctx.fillRect(x, y, r, r);
+  }
+  ctx.globalAlpha = 1;
+  // scan line horizontal
+  const scanY = ((t * 600) % H);
+  const sg = ctx.createLinearGradient(0, scanY-30, 0, scanY+30);
+  sg.addColorStop(0, 'rgba(17, 102, 255, 0)');
+  sg.addColorStop(0.5, 'rgba(77, 138, 255, 0.8)');
+  sg.addColorStop(1, 'rgba(17, 102, 255, 0)');
+  ctx.fillStyle = sg;
+  ctx.fillRect(0, scanY-30, W, 60);
+}
+
+function drawCathedralForming(local, t) {
+  // morph dispersos → catedral
+  const phase = ease(local);
+  for (const p of dispersed) {
+    if (p.ambient && phase < 0.7) continue;
+    const x = lerp(p.sx, p.x, phase);
+    const y = lerp(p.sy, p.y, phase);
+    ctx.fillStyle = p.c;
+    // alpha sobe conforme converge: começa baixo, termina alto
+    ctx.globalAlpha = p.ambient ? 0.35 * phase : (0.45 + phase * 0.45);
+    ctx.fillRect(x, y, p.r * (1 + (1-phase)*0.6), p.r);
+  }
+  ctx.globalAlpha = 1;
+  // glow no centro depois que forma
+  if (phase > 0.7) {
+    const glow = (phase - 0.7) / 0.3;
+    const gg = ctx.createRadialGradient(W/2, H*0.45, 40, W/2, H*0.45, 400);
+    gg.addColorStop(0, `rgba(77, 138, 255, ${0.25 * glow})`);
+    gg.addColorStop(1, 'rgba(17, 102, 255, 0)');
+    ctx.fillStyle = gg;
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+function drawCathedralWithWireframe(local, t) {
+  // catedral em pontos (respirando) + wireframe
+  const breathe = Math.sin(t * 2) * 1.2;
+  for (const p of dispersed) {
+    if (p.ambient) continue;
+    ctx.fillStyle = p.c;
+    ctx.globalAlpha = 0.75 + 0.2 * Math.sin(t * 3 + p.x * 0.01);
+    ctx.fillRect(p.x + breathe * 0.3, p.y + breathe, p.r * 1.2, p.r * 1.2);
+  }
+  ctx.globalAlpha = 1;
+
+  // wireframe das linhas estruturais
+  const wfAlpha = clamp(local * 1.5, 0, 0.7);
+  ctx.strokeStyle = `rgba(255, 255, 255, ${wfAlpha})`;
+  ctx.lineWidth = 1.5;
+  const cx = W/2, cy = H*0.48, s = 1.55;
+  ctx.beginPath();
+  // contorno
+  ctx.moveTo(cx - 360*s, cy + 380*s);
+  ctx.lineTo(cx - 360*s, cy);
+  ctx.lineTo(cx - 80*s, cy);
+  ctx.lineTo(cx - 80*s, cy - 640*s);
+  ctx.moveTo(cx + 80*s, cy - 640*s);
+  ctx.lineTo(cx + 80*s, cy);
+  ctx.lineTo(cx + 360*s, cy);
+  ctx.lineTo(cx + 360*s, cy + 380*s);
+  // telhado
+  ctx.moveTo(cx - 360*s, cy);
+  ctx.lineTo(cx, cy - 240*s);
+  ctx.lineTo(cx + 360*s, cy);
+  // cruz
+  ctx.moveTo(cx, cy - 640*s);
+  ctx.lineTo(cx, cy - 740*s);
+  ctx.moveTo(cx - 40*s, cy - 680*s);
+  ctx.lineTo(cx + 40*s, cy - 680*s);
+  ctx.stroke();
+
+  // scan line varrendo
+  const scanY = lerp(cy - 700, cy + 400, (t % 3) / 3);
+  ctx.strokeStyle = 'rgba(77, 138, 255, 0.7)';
+  ctx.shadowColor = '#1166ff';
+  ctx.shadowBlur = 16;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(0, scanY);
+  ctx.lineTo(W, scanY);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+}
+
+function drawCathedralFaded(t) {
+  // catedral suave de fundo na cena 4
+  const breathe = Math.sin(t * 1.5) * 0.8;
+  ctx.globalAlpha = 0.55;
+  for (const p of dispersed) {
+    if (p.ambient) continue;
+    ctx.fillStyle = p.c;
+    ctx.fillRect(p.x + breathe * 0.2, p.y + breathe, p.r, p.r);
+  }
+  ctx.globalAlpha = 1;
+  // overlay escurecedor para o CTA ficar legível
+  ctx.fillStyle = 'rgba(5, 5, 7, 0.65)';
+  ctx.fillRect(0, 0, W, H);
+}
+
+// ===== TEXTO / TÍTULOS =====
+function drawHeader(t) {
+  // logo top-left
+  ctx.save();
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'top';
+
+  ctx.font = '300 44px Inter, system-ui, sans-serif';
+  ctx.fillText('TOPO', 80, 80);
+  const wTopo = ctx.measureText('TOPO').width;
+  ctx.font = '800 44px Inter, system-ui, sans-serif';
+  ctx.fillText('SCAN', 80 + wTopo, 80);
+
+  // status top-right
+  ctx.font = '700 18px ui-monospace, Menlo, monospace';
+  ctx.fillStyle = '#4d8aff';
+  const blink = Math.sin(t * 5) > 0 ? 1 : 0.3;
+  ctx.globalAlpha = blink;
+  ctx.fillText('●', W - 200, 92);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#4d8aff';
+  ctx.fillText(' REC · 4K', W - 185, 92);
+  ctx.restore();
+}
+
+function drawProgressBar(t) {
+  const pct = clamp(t / 18, 0, 1);
+  ctx.fillStyle = '#1166ff';
+  ctx.shadowColor = '#1166ff';
+  ctx.shadowBlur = 12;
+  ctx.fillRect(0, 0, W * pct, 4);
+  ctx.shadowBlur = 0;
+}
+
+function drawTitle0(t) {
+  // título do início — só aparece nos primeiros 2.5s
+  const fadeIn = smoothstep(0.4, 1.2, t);
+  const fadeOut = 1 - smoothstep(2.3, 3.0, t);
+  ctx.save();
+  ctx.globalAlpha = fadeIn * fadeOut;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#4d8aff';
+  ctx.font = '700 22px ui-monospace, monospace';
+  ctx.fillText('TOPOSCAN · BRASIL', W/2, H * 0.30);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 60px Inter, system-ui, sans-serif';
+  ctx.fillText('CAPTURANDO', W/2, H * 0.34);
+  ctx.fillText('A REALIDADE.', W/2, H * 0.39);
+  ctx.restore();
+}
+
+function drawTitle1(t) {
+  // Hook
+  const fadeIn = smoothstep(3.4, 4.0, t);
+  const fadeOut = 1 - smoothstep(5.6, 6.0, t);
+  ctx.save();
+  ctx.globalAlpha = fadeIn * fadeOut;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#4d8aff';
+  ctx.font = '700 22px ui-monospace, monospace';
+  ctx.fillText('PATRIMÔNIO · ETERNO', W/2, H * 0.36);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 105px Inter, system-ui, sans-serif';
+  ctx.fillText('E SE', W/2, H * 0.41);
+  ctx.fillText('DESAPARECESSE', W/2, H * 0.48);
+  ctx.fillStyle = '#4d8aff';
+  ctx.font = 'italic 800 105px Inter, system-ui, sans-serif';
+  ctx.fillText('AMANHÃ?', W/2, H * 0.55);
+  ctx.restore();
+}
+
+function drawTitle2(t) {
+  // Cena revelação
+  const fadeIn = smoothstep(7.5, 8.2, t);
+  const fadeOut = 1 - smoothstep(9.7, 10.1, t);
+  ctx.save();
+  ctx.globalAlpha = fadeIn * fadeOut;
+  ctx.textAlign = 'left';
+
+  // barra azul vertical à esquerda
+  ctx.fillStyle = '#1166ff';
+  ctx.fillRect(80, H * 0.74, 6, H * 0.14);
+
+  ctx.fillStyle = '#4d8aff';
+  ctx.font = '700 20px ui-monospace, monospace';
+  ctx.fillText('PRECISÃO · ±2MM', 110, H * 0.745);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 80px Inter, system-ui, sans-serif';
+  ctx.fillText('A GENTE', 110, H * 0.79);
+  ctx.fillText('PRESERVARIA', 110, H * 0.83);
+  ctx.fillText('CADA', 110, H * 0.87);
+  ctx.fillStyle = '#4d8aff';
+  ctx.fillText('MILÍMETRO.', 110, H * 0.91);
+  ctx.restore();
+}
+
+function drawTitle3(t) {
+  // Texto cena 3 — wireframe
+  const fadeIn = smoothstep(10.3, 10.9, t);
+  const fadeOut = 1 - smoothstep(13.7, 14.1, t);
+  ctx.save();
+  ctx.globalAlpha = fadeIn * fadeOut;
+  ctx.textAlign = 'center';
+
+  ctx.fillStyle = '#4d8aff';
+  ctx.font = '700 22px ui-monospace, monospace';
+  ctx.fillText('14.2M PONTOS · ±2MM · 360°', W/2, H * 0.82);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 62px Inter, system-ui, sans-serif';
+  ctx.fillText('A REALIDADE', W/2, H * 0.86);
+  ctx.fillText('VIRA DADO.', W/2, H * 0.905);
+  ctx.restore();
+}
+
+function drawHUD(local, t) {
+  ctx.save();
+  // coordenadas top-right (abaixo do header)
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+  ctx.font = '500 18px ui-monospace, monospace';
+  ctx.textAlign = 'right';
+  const x = W - 80;
+  let y = 170;
+  const fields = [
+    ['LAT', '-27.5954°'],
+    ['LONG', '-48.5480°'],
+    ['POINTS', '14.2M'],
+    ['DENSITY', '8.5K/m²'],
+    ['PRECISION', '±2MM']
+  ];
+  for (const [k, v] of fields) {
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillText(k, x - 130, y);
+    ctx.fillStyle = '#4d8aff';
+    ctx.fillText(v, x, y);
+    y += 30;
+  }
+  ctx.restore();
+}
+
+function drawCTA(local, t) {
+  ctx.save();
+  ctx.textAlign = 'center';
+
+  // logo grande centro
+  const logoY = H * 0.40;
+  const fadeLogo = smoothstep(14.2, 14.7, t);
+  ctx.globalAlpha = fadeLogo;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '300 130px Inter, system-ui, sans-serif';
+  // TOPO em light + SCAN em bold, juntos
+  const tw1 = ctx.measureText('TOPO').width;
+  ctx.font = '800 130px Inter, system-ui, sans-serif';
+  const tw2 = ctx.measureText('SCAN').width;
+  const total = tw1 + tw2;
+  const sx = W/2 - total/2;
+  ctx.font = '300 130px Inter, system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('TOPO', sx, logoY);
+  ctx.font = '800 130px Inter, system-ui, sans-serif';
+  ctx.fillText('SCAN', sx + tw1, logoY);
+
+  // barra azul
+  const fadeBar = smoothstep(14.5, 14.9, t);
+  ctx.globalAlpha = fadeBar;
+  ctx.fillStyle = '#1166ff';
+  ctx.shadowColor = '#1166ff';
+  ctx.shadowBlur = 18;
+  ctx.fillRect(W/2 - 50, logoY + 50, 100, 6);
+  ctx.shadowBlur = 0;
+
+  // tagline
+  const fadeTag = smoothstep(14.8, 15.3, t);
+  ctx.globalAlpha = fadeTag;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 60px Inter, system-ui, sans-serif';
+  ctx.fillText('ZERO MARGEM DE ERRO.', W/2, H * 0.56);
+  ctx.fillStyle = '#4d8aff';
+  ctx.font = 'italic 800 60px Inter, system-ui, sans-serif';
+  ctx.fillText('PARA A ETERNIDADE.', W/2, H * 0.61);
+
+  // stats
+  const fadeStats = smoothstep(15.2, 15.8, t);
+  ctx.globalAlpha = fadeStats;
+  const statsY = H * 0.72;
+  const xs = [W/2 - 280, W/2, W/2 + 280];
+  const nums = ['10+', '±2mm', '360°'];
+  const lbls = ['ANOS', 'PRECISÃO', 'REALIDADE'];
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = '#4d8aff';
+    ctx.font = '800 76px ui-monospace, monospace';
+    ctx.fillText(nums[i], xs[i], statsY);
+    ctx.fillStyle = '#9aa3b2';
+    ctx.font = '700 18px ui-monospace, monospace';
+    ctx.fillText(lbls[i], xs[i], statsY + 38);
+  }
+
+  // handle + url
+  const fadeHandle = smoothstep(15.7, 16.2, t);
+  ctx.globalAlpha = fadeHandle;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '700 32px ui-monospace, monospace';
+  ctx.fillText('@topo.scan', W/2, H * 0.84);
+  ctx.fillStyle = '#9aa3b2';
+  ctx.font = '500 22px ui-monospace, monospace';
+  ctx.fillText('toposcan.com.br', W/2, H * 0.88);
+
+  // 4 cantos com colchetes
+  ctx.globalAlpha = fadeLogo;
+  ctx.strokeStyle = '#1166ff';
+  ctx.lineWidth = 3;
+  const cl = 60, off = 50;
+  // top-left
+  ctx.beginPath();
+  ctx.moveTo(off, off + cl); ctx.lineTo(off, off); ctx.lineTo(off + cl, off);
+  // top-right
+  ctx.moveTo(W - off - cl, off); ctx.lineTo(W - off, off); ctx.lineTo(W - off, off + cl);
+  // bottom-left
+  ctx.moveTo(off, H - off - cl); ctx.lineTo(off, H - off); ctx.lineTo(off + cl, H - off);
+  // bottom-right
+  ctx.moveTo(W - off - cl, H - off); ctx.lineTo(W - off, H - off); ctx.lineTo(W - off, H - off - cl);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// exposto pro driver Node
+window.__render = render;
+
+// preview: anima quando aberto no browser (mas ignorado pelo render headless)
+let _t0 = performance.now();
+function _loop() {
+  const t = ((performance.now() - _t0) / 1000) % 18.5;
+  render(t);
+  requestAnimationFrame(_loop);
+}
+if (!window.location.search.includes('headless')) _loop();
+</script>
+</body></html>
